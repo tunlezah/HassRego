@@ -1,0 +1,14 @@
+target-version = "py313"
+line-length = 100
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "D", "ASYNC", "PLC", "PLE", "PLW"]
+# RUF012: Home Assistant entities set list-valued _attr_* class attributes.
+# D203/D213: conflict with the pep257 convention used below.
+ignore = ["D203", "D213", "RUF012"]
+
+[lint.per-file-ignores]
+"tests/*" = ["D100", "D103"]
+
+[lint.pydocstyle]
+convention = "pep257"

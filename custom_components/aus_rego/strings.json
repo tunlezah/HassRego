@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a vehicle",
+        "description": "Enter the vehicle's registration (plate) number and the state or territory it is registered in. Add the integration again for each additional vehicle.",
+        "data": {
+          "jurisdiction": "State or territory",
+          "plate": "Registration number",
+          "vehicle_name": "Vehicle name (optional)"
+        },
+        "data_description": {
+          "jurisdiction": "Where the vehicle is registered. Choose Manual if your state's website cannot be checked automatically.",
+          "plate": "Spaces and dashes are ignored.",
+          "vehicle_name": "Used to name the device and its entities, for example \"Mum's Corolla\"."
+        }
+      },
+      "details": {
+        "title": "{jurisdiction} details",
+        "description": "A few more details are needed for {jurisdiction}.",
+        "data": {
+          "vehicle_type": "Registration type",
+          "accept_terms": "I accept the Queensland TMR terms of use",
+          "manual_expiry": "Registration expiry date",
+          "rest_url": "Request URL",
+          "rest_method": "HTTP method",
+          "rest_headers": "Headers (JSON object)",
+          "rest_body": "Request body",
+          "rest_status_path": "JSON path to the status",
+          "rest_expiry_path": "JSON path to the expiry date",
+          "rest_registered_path": "JSON path to a registered true/false"
+        },
+        "data_description": {
+          "accept_terms": "Each check accepts the terms of use on your behalf, exactly as clicking through the website does. Read them at {check_url}.",
+          "manual_expiry": "Take this from your renewal notice or an official check. Update it after each renewal.",
+          "rest_url": "Use {plate} where the plate should go.",
+          "rest_status_path": "Dotted path, for example data.registration.status",
+          "rest_expiry_path": "Dotted path, for example data.registration.expiryDate",
+          "rest_registered_path": "Dotted path to a boolean, for example data.isRegistered"
+        }
+      },
+      "confirm_not_found": {
+        "title": "Plate not found",
+        "description": "{jurisdiction} has no record of {plate}.\n\nThis usually means a typo, or that the vehicle is registered in a different state. Check the plate before continuing.\n\nSubmit to add it anyway."
+      },
+      "confirm_gated": {
+        "title": "Automatic checks are not available",
+        "description": "{reason}\n\nYou can still add this vehicle. All of its sensors and automations will work, but the registration status will only update when a check succeeds. To track it reliably, remove this vehicle and add it again using Manual mode.\n\nOfficial check: {check_url}\n\nSubmit to add it anyway."
+      }
+    },
+    "error": {
+      "invalid_plate": "That does not look like a valid registration number.",
+      "terms_required": "You must accept the terms of use to check Queensland registrations automatically."
+    },
+    "abort": {
+      "already_configured": "That vehicle is already set up.",
+      "not_configured": "This provider still needs configuration: {error}"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Check schedule",
+        "description": "By default each vehicle is checked at 7:00 am every day.",
+        "data": {
+          "check_time": "Check at",
+          "interval_days": "Check every (days)",
+          "expiry_warning_days": "Warn this many days before expiry",
+          "check_on_start": "Also check shortly after Home Assistant starts",
+          "jitter_seconds": "Spread checks over (seconds)"
+        },
+        "data_description": {
+          "interval_days": "1 means every day, 7 means weekly.",
+          "jitter_seconds": "A small stable delay after the scheduled time so several vehicles do not hit the website at once.",
+          "check_on_start": "Runs one minute after startup so your data is current again after a restart."
+        }
+      },
+      "details": {
+        "title": "Vehicle details",
+        "description": "Update the details used for this vehicle's check.",
+        "data": {
+          "vehicle_type": "Registration type",
+          "accept_terms": "I accept the Queensland TMR terms of use",
+          "manual_expiry": "Registration expiry date",
+          "rest_url": "Request URL",
+          "rest_method": "HTTP method",
+          "rest_headers": "Headers (JSON object)",
+          "rest_body": "Request body",
+          "rest_status_path": "JSON path to the status",
+          "rest_expiry_path": "JSON path to the expiry date",
+          "rest_registered_path": "JSON path to a registered true/false"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "registered": {
+        "name": "Registered",
+        "state": { "off": "Not registered", "on": "Registered" }
+      },
+      "expiring_soon": { "name": "Expiring soon" },
+      "check_failing": { "name": "Check failing" }
+    },
+    "sensor": {
+      "status": {
+        "name": "Registration status",
+        "state": {
+          "registered": "Registered",
+          "expired": "Expired",
+          "suspended": "Suspended",
+          "cancelled": "Cancelled",
+          "unregistered": "Not registered",
+          "not_found": "Not found",
+          "unknown": "Unknown"
+        }
+      },
+      "expiry": { "name": "Registration expires" },
+      "days_remaining": { "name": "Days until expiry" },
+      "last_checked": { "name": "Last checked" }
+    },
+    "button": {
+      "check_now": { "name": "Check now" }
+    }
+  },
+  "services": {
+    "check_now": {
+      "name": "Check now",
+      "description": "Re-checks vehicles immediately instead of waiting for the scheduled time.",
+      "fields": {
+        "entry_id": { "name": "Vehicle", "description": "Which vehicle to check. Leave empty to check all of them." },
+        "device_id": { "name": "Devices", "description": "Vehicle devices to check." }
+      }
+    },
+    "check_plate": {
+      "name": "Check a plate",
+      "description": "Looks up any plate once and returns the result, without adding a vehicle.",
+      "fields": {
+        "jurisdiction": { "name": "State or territory", "description": "Where the vehicle is registered." },
+        "plate": { "name": "Registration number", "description": "The plate to look up." }
+      }
+    }
+  },
+  "exceptions": {
+    "not_configured": { "message": "{error}" }
+  }
+}
