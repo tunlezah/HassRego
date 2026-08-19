@@ -1,0 +1,139 @@
+blueprint:
+  name: Vehicle registration alert
+  description: >-
+    Acts when a vehicle's registration is not current, or is about to expire.
+
+    Choose a notification, a light, or both. The automation deliberately stays
+    quiet when a check *fails* — a government website being down is not the same
+    as a car being unregistered — and there is a separate option to be told
+    about those failures.
+
+    Inside your notification action you can use the variables `headline`,
+    `detail` and `vehicle_name`.
+  domain: automation
+  source_url: https://github.com/tunlezah/hassrego/blob/main/blueprints/automation/aus_rego/registration_alert.yaml
+  input:
+    vehicle:
+      name: Vehicle
+      description: The "Registered" binary sensor for the vehicle to watch.
+      selector:
+        entity:
+          filter:
+            - integration: aus_rego
+              domain: binary_sensor
+    notify_action:
+      name: Notification action
+      description: >-
+        Optional. What to do to notify you, for example a "notify" action.
+        Use {{ headline }} and {{ detail }} in the message.
+      default: []
+      selector:
+        action:
+    alert_light:
+      name: Light to flash
+      description: Optional. A light to flash when there is a problem.
+      default: {}
+      selector:
+        target:
+          entity:
+            domain: light
+    flash_count:
+      name: Number of flashes
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 20
+          step: 1
+          mode: box
+    alert_on_expiring:
+      name: Also alert when expiring soon
+      description: >-
+        Alert while the registration is still valid but inside the warning
+        window set in the integration's options.
+      default: true
+      selector:
+        boolean:
+    alert_on_check_failure:
+      name: Alert when the check itself fails
+      description: >-
+        Tell me when the registration could not be checked at all, for example
+        because the website was unreachable or is blocking automated checks.
+      default: false
+      selector:
+        boolean:
+
+mode: queued
+max: 10
+
+variables:
+  vehicle_entity: !input vehicle
+  light_target: !input alert_light
+  flashes: !input flash_count
+  warn_expiring: !input alert_on_expiring
+  warn_failure: !input alert_on_check_failure
+
+triggers:
+  - trigger: state
+    entity_id: !input vehicle
+    to: "off"
+    id: not_registered
+  - trigger: event
+    event_type: aus_rego_expiring
+    id: expiring
+  - trigger: event
+    event_type: aus_rego_check_failed
+    id: check_failed
+
+conditions:
+  - condition: template
+    value_template: >-
+      {% if trigger.id == 'expiring' %}{{ warn_expiring }}
+      {% elif trigger.id == 'check_failed' %}{{ warn_failure }}
+      {% else %}true{% endif %}
+
+actions:
+  - variables:
+      vehicle_name: >-
+        {% if trigger.id == 'not_registered' %}
+        {{ state_attr(vehicle_entity, 'friendly_name') or vehicle_entity }}
+        {% else %}{{ trigger.event.data.vehicle_name }}{% endif %}
+      headline: >-
+        {% if trigger.id == 'not_registered' %}
+        {{ vehicle_name }} is NOT registered
+        {% elif trigger.id == 'expiring' %}
+        {{ vehicle_name }} registration expires in {{ trigger.event.data.days_remaining }} day(s)
+        {% else %}
+        Could not check {{ vehicle_name }}'s registration
+        {% endif %}
+      detail: >-
+        {% if trigger.id == 'not_registered' %}
+        Status: {{ state_attr(vehicle_entity, 'status') or 'unknown' }}.
+        {% set expiry = state_attr(vehicle_entity, 'expiry') %}
+        {% if expiry %}Expired {{ expiry }}.{% endif %}
+        {% elif trigger.id == 'expiring' %}
+        Expires {{ trigger.event.data.expiry }} ({{ trigger.event.data.plate }}).
+        {% else %}
+        {{ trigger.event.data.error }} — attempt {{ trigger.event.data.consecutive_failures }}.
+        This is a check failure, not proof the vehicle is unregistered.
+        {% endif %}
+      should_flash: >-
+        {{ light_target | count > 0 and trigger.id != 'check_failed' }}
+
+  - alias: Notify, and flash the light if one was chosen
+    parallel:
+      - alias: Run the notification action
+        sequence: !input notify_action
+      - alias: Flash the light
+        sequence:
+          - condition: template
+            value_template: "{{ should_flash }}"
+          - repeat:
+              count: "{{ flashes }}"
+              sequence:
+                - action: light.turn_on
+                  target: !input alert_light
+                  data:
+                    flash: long
+                - delay:
+                    seconds: 2

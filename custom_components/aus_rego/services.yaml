@@ -1,0 +1,35 @@
+check_now:
+  fields:
+    entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: aus_rego
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: aus_rego
+          multiple: true
+
+check_plate:
+  fields:
+    jurisdiction:
+      required: true
+      example: qld
+      selector:
+        select:
+          options:
+            - nsw
+            - vic
+            - qld
+            - sa
+            - wa
+            - tas
+            - nt
+            - act
+    plate:
+      required: true
+      example: ABC123
+      selector:
+        text:

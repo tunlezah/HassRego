@@ -1,0 +1,22 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "registered": { "default": "mdi:car-info", "state": { "off": "mdi:car-off", "on": "mdi:car" } },
+      "expiring_soon": { "default": "mdi:calendar-clock", "state": { "on": "mdi:calendar-alert" } },
+      "check_failing": { "default": "mdi:cloud-check-variant", "state": { "on": "mdi:cloud-alert" } }
+    },
+    "sensor": {
+      "status": { "default": "mdi:card-account-details-outline" },
+      "expiry": { "default": "mdi:calendar-end" },
+      "days_remaining": { "default": "mdi:calendar-range" },
+      "last_checked": { "default": "mdi:clock-check-outline" }
+    },
+    "button": {
+      "check_now": { "default": "mdi:refresh" }
+    }
+  },
+  "services": {
+    "check_now": { "service": "mdi:refresh" },
+    "check_plate": { "service": "mdi:car-search" }
+  }
+}
